@@ -142,13 +142,17 @@ definition.send(:resolve)[stackprof_bundler_spec.identifier] = stackprof_bundler
 
 <% if @other_gems -%>
 <% @other_gems.each do |gem| -%>
-##### Install <%= gem[:name] %> #####
-puts "Installing <%= gem[:name] %>.gem"
+# Build sources, dependencies and spec for <%= gem[:name] %>
+new_gem_version      = Gem::Version.new(<%= gem[:env_name] %>_GEM_VERSION)
+new_gem_bundler_src  = Bundler::Source::Path.from_lock "remote" => <%= gem[:env_name] %>_INSTALL_LOCATION
+new_gem_bundler_dep  = Bundler::Dependency.new <%= gem[:env_name] %>_GEM_NAME, nil, "source" => new_gem_bundler_src
+new_gem_bundler_spec = Bundler::LazySpecification.new <%= gem[:env_name] %>_GEM_NAME, new_gem_version, Gem::Platform::RUBY
+new_gem_bundler_spec.source = new_gem_bundler_src
 
-gem_file = "/tmp/#{<%= gem[:env_name] %>_FULL_GEM_NAME}.gem"
-File.write gem_file, Base64.decode64(<%= gem[:env_name] %>_GEM_BUNDLE)
-
-Gem::Installer.new(gem_file, :install_dir => GEM_INSTALL_DIR).install
+# Add source, spec, and dependency to existing definition
+definition.dependencies << new_gem_bundler_dep
+definition.send(:sources).send :add_path_source, new_gem_bundler_src.options
+definition.send(:resolve)[new_gem_bundler_spec.identifier] = new_gem_bundler_spec
 <% end -%>
 <% end -%>
 
